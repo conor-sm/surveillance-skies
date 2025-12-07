@@ -3,9 +3,9 @@ import pygame, random
 pygame.init()
 
 USER_IMAGE = pygame.transform.scale(pygame.image.load("data/user_image.png"), (128, 256))
-MENU_IMAGE = pygame.transform.scale(pygame.image.load("data/menu_image.png"), (100, 100))
 EVENT_IMAGE_A = pygame.transform.scale(pygame.image.load("data/event_image_a.png"), (64, 64))
 EVENT_IMAGE_B = pygame.transform.scale(pygame.image.load("data/event_image_b.png"), (64, 64))
+BACKGROUND = pygame.transform.scale(pygame.image.load("data/background.png"), (896, 640))
 
 running = True
 menu_active = True
@@ -19,16 +19,36 @@ class Game():
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         self.small_font = pygame.font.SysFont("Aptos", 64)
         self.smaller_font = pygame.font.SysFont("Aptos", 46)
+        self.background = BACKGROUND
+        self.y_1 = 0
+        self.y_2 = -self.HEIGHT
+        self.scroll_speed = 2
+
+    def update_background(self):
+        self.y_1 += self.scroll_speed
+        self.y_2 += self.scroll_speed
+
+        if self.y_1 >= self.HEIGHT:
+            self.y_1 = -self.HEIGHT
+        
+        if self.y_2 >= self.HEIGHT:
+            self.y_2 = -self.HEIGHT
 
     def menu(self):
         self.screen.fill((0, 0, 0))
-        self.screen.blit(MENU_IMAGE, ((self.WIDTH - 100) // 2, (self.HEIGHT - 100) // 2))
+        self.screen.blit(self.background, (0, 0))
+        self.menu_text = self.small_font.render("Surveillance Skies", True, (0, 0, 0))
+        self.menu_prompt = self.smaller_font.render("ENTER to Begin", True, (0, 0, 0))
+        self.screen.blit(self.menu_text, ((self.WIDTH - self.menu_text.get_width()) // 2, (self.HEIGHT - self.menu_text.get_height()) // 2 - 15))
+        self.screen.blit(self.menu_prompt, ((self.WIDTH - self.menu_prompt.get_width()) // 2, (self.HEIGHT - self.menu_prompt.get_height()) // 2 + 30))
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
         self.clock.tick(60)
         pygame.display.update()
     
     def game(self):
         self.screen.fill((0, 0, 0))
+        self.screen.blit(self.background, (0, self.y_1))
+        self.screen.blit(self.background, (0, self.y_2))
         #user_class.update()
         if not event_class.picked:
             event_class.update()
@@ -36,7 +56,7 @@ class Game():
         user_class.draw()
         event_class.draw()
 
-        self.points_display = self.small_font.render(f"S:{user_class.points}", True, (255, 255, 255))
+        self.points_display = self.small_font.render(f"S:{user_class.points}", True, (0, 0, 0))
         self.screen.blit(self.points_display, ((self.WIDTH - self.points_display.get_width()) // 2, (self.HEIGHT - 64)))
 
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
@@ -46,6 +66,11 @@ class Game():
 
     def game_over(self):
         self.screen.fill((0, 0, 0))
+        self.screen.blit(self.background, (0, 0))
+        self.text = self.small_font.render("Wrong Move", True, (0, 0, 0))
+        self.prompt = self.smaller_font.render("ENTER to return to MENU", True, (0, 0, 0))
+        self.screen.blit(self.text, ((self.WIDTH - self.text.get_width()) // 2, (self.HEIGHT - self.text.get_height()) // 2 - 15))
+        self.screen.blit(self.prompt, ((self.WIDTH - self.prompt.get_width()) // 2, (self.HEIGHT - self.prompt.get_height()) // 2 + 30))
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
         self.clock.tick(60)
         pygame.display.update()
@@ -66,12 +91,24 @@ class Event():
     def __init__(self):
         self.image_A = EVENT_IMAGE_A
         self.image_B = EVENT_IMAGE_B
+        self.image = None
         self.x = 0
         self.y = 10
         self.picked = False
         self.A = False
         self.B = False
-        self.dialouges = ["Target acquired in sector 4. Weapons free?", "Bogey on scope. Awaiting fire authorization.", "Hostile inbound! Weapons hot or hold?", "Multiple adults, one child in blast radius. Abort or hold?"]
+        self.dialouges = ["Thermal trace spotted, what do you say?", "Potential enemy on scope?", "Weapons hot or cold?", "Make a decision, ASAP!"]
+        self.scroll_speed = 2
+        self.last_spawn_time = 0
+        self.spawn_delay = 2000
+    
+    def scroll(self):
+        global game_active, lost_active
+        if self.picked:
+            self.y += self.scroll_speed
+            if self.y >= game_class.HEIGHT:
+                lost_active = True
+                game_active = False
 
     def random_event(self):
         self.event_choice = random.randint(0, 1)
@@ -83,13 +120,6 @@ class Event():
             self.B = True
             self.image = self.image_B
 
-    def random_dialouge(self):
-        self.dialouge = random.choice(self.dialouges)
-
-    def random_x(self):
-        self.choice = random.randint(0, (896 - 64))
-        self.picked = True
-
     def random_choice(self):
         global game_active, lost_active
         self.random_choice_int = random.randint(0, 1)
@@ -98,21 +128,25 @@ class Event():
             game_active = False
 
         elif self.random_choice_int == 1:
-            user_class.points += 1
+            if self.picked:
+                user_class.points += 1
             self.picked = False
 
     def update(self):
-        if not self.picked:
-            self.random_x()
-            self.random_dialouge()
-        self.x = self.choice
-        self.random_event()
+        current_time = pygame.time.get_ticks()
+        if not self.picked and current_time - self.last_spawn_time >= self.spawn_delay:
+            self.x = random.randint(0, 896 - 64)
+            self.y = 0
+            self.dialouge = random.choice(self.dialouges)
+            self.image = random.choice([self.image_A, self.image_B])
+            self.picked = True
+            self.last_spawn_time = current_time
 
     def draw(self):
-        game_class.screen.blit(self.image, (self.x, self.y))
-        self.text = game_class.smaller_font.render(f"{self.dialouge}", True, (255, 255, 255))
-        game_class.screen.blit(self.text, ((game_class.WIDTH - self.text.get_width()) // 2, (game_class.HEIGHT - 150)))
-
+        if self.image:
+            game_class.screen.blit(self.image, (self.x, self.y))
+            self.text = game_class.smaller_font.render(f"{self.dialouge}", True, (0, 0, 0))
+            game_class.screen.blit(self.text, ((game_class.WIDTH - self.text.get_width()) // 2, (game_class.HEIGHT - 150)))
 
 user_class = User()
 game_class = Game()
@@ -129,17 +163,27 @@ while running:
                 menu_active = False
                 user_class.points = 0
                 event_class.picked = False
+                event_class.y = 0
+                event_class.last_spawn_time = pygame.time.get_ticks()
+                pygame.time.get_ticks()
             if event.key == pygame.K_e and game_active:
+                event_class.image = None
                 user_class.shoot = False
                 user_class.report = True
                 event_class.picked = False
-            if event.key == pygame.K_f and game_active:
+                event_class.y = 0
+                event_class.last_spawn_time = pygame.time.get_ticks()
+            if event.key == pygame.K_f and game_active and event_class.picked:
+                event_class.image = None
                 user_class.report = False
                 user_class.shoot = True
                 event_class.random_choice()
+                event_class.y = 0
+                event_class.last_spawn_time = pygame.time.get_ticks()
             if event.key == pygame.K_RETURN and not game_active and not menu_active:
                 menu_active = True
                 user_class.points = 0
+                event_class.y = 0
             
     user_class.report = False
     user_class.shoot = False
@@ -148,6 +192,8 @@ while running:
         game_class.menu()
 
     elif game_active:
+        game_class.update_background()
+        event_class.scroll()
         game_class.game()
 
     elif lost_active:
