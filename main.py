@@ -2,7 +2,7 @@ import pygame, random
 
 pygame.init()
 
-USER_IMAGE = pygame.transform.scale(pygame.image.load("data/user_image.png"), (128, 256))
+USER_IMAGE = pygame.transform.scale(pygame.image.load("data/user_image.png"), (128, 192))
 EVENT_IMAGE_A = pygame.transform.scale(pygame.image.load("data/event_image_a.png"), (64, 64))
 EVENT_IMAGE_B = pygame.transform.scale(pygame.image.load("data/event_image_b.png"), (64, 64))
 BACKGROUND = pygame.transform.scale(pygame.image.load("data/background.png"), (896, 640))
@@ -11,6 +11,7 @@ running = True
 menu_active = True
 game_active = False
 lost_active = False
+help_active = False
 
 class Game():
     def __init__(self):
@@ -38,9 +39,11 @@ class Game():
         self.screen.fill((0, 0, 0))
         self.screen.blit(self.background, (0, 0))
         self.menu_text = self.small_font.render("Surveillance Skies", True, (0, 0, 0))
-        self.menu_prompt = self.smaller_font.render("ENTER to Begin", True, (0, 0, 0))
+        self.menu_prompt = self.smaller_font.render("ENTER to play", True, (0, 0, 0))
+        self.help_prompt = self.smaller_font.render("H for help", True, (100, 0, 0))
         self.screen.blit(self.menu_text, ((self.WIDTH - self.menu_text.get_width()) // 2, (self.HEIGHT - self.menu_text.get_height()) // 2 - 15))
         self.screen.blit(self.menu_prompt, ((self.WIDTH - self.menu_prompt.get_width()) // 2, (self.HEIGHT - self.menu_prompt.get_height()) // 2 + 30))
+        self.screen.blit(self.help_prompt, ((self.WIDTH - self.help_prompt.get_width()) // 2, (self.HEIGHT - self.menu_text.get_height()) // 2 + 75))
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
         self.clock.tick(60)
         pygame.display.update()
@@ -56,7 +59,7 @@ class Game():
         user_class.draw()
         event_class.draw()
 
-        self.points_display = self.small_font.render(f"S:{user_class.points}", True, (0, 0, 0))
+        self.points_display = self.small_font.render(f"S:{user_class.points}", True, (100, 0, 0))
         self.screen.blit(self.points_display, ((self.WIDTH - self.points_display.get_width()) // 2, (self.HEIGHT - 64)))
 
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
@@ -67,11 +70,32 @@ class Game():
     def game_over(self):
         self.screen.fill((0, 0, 0))
         self.screen.blit(self.background, (0, 0))
-        self.text = self.small_font.render("Wrong Move", True, (0, 0, 0))
+        self.text = self.small_font.render("Wrong Move", True, (100, 0, 0))
         self.prompt = self.smaller_font.render("ENTER to return to MENU", True, (0, 0, 0))
         self.screen.blit(self.text, ((self.WIDTH - self.text.get_width()) // 2, (self.HEIGHT - self.text.get_height()) // 2 - 15))
         self.screen.blit(self.prompt, ((self.WIDTH - self.prompt.get_width()) // 2, (self.HEIGHT - self.prompt.get_height()) // 2 + 30))
         print(f"menu_active={menu_active} | REPORT={user_class.report} | SHOOT={user_class.shoot} | game_active={game_active} | lost_active={lost_active} | points={user_class.points}")
+        self.clock.tick(60)
+        pygame.display.update()
+
+    def help(self):
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.background, (0, 0))
+
+        self.main_text = self.small_font.render("Surveillance Skies: HOW TO PLAY?", True, (0, 0, 0))
+        self.prompt = self.smaller_font.render("ENTER to return to menu", True, (100, 0, 0))
+        self.paragraph_l1 = self.smaller_font.render("You either click [E] to report an enemy (no points)", True, (0, 0, 0))
+        self.paragraph_l2 = self.smaller_font.render("or click [F] to fire at an enemy which can earn you points,", True, (0, 0, 0))
+        self.paragraph_l3 = self.smaller_font.render("however there is a 1/4 chance of the 'enemy'", True, (0, 0, 0))
+        self.paragraph_l4 = self.smaller_font.render("being innocent, making the game over.", True, (0, 0, 0))
+
+        self.screen.blit(self.main_text, ((self.WIDTH - self.main_text.get_width()) // 2, 50))
+        self.screen.blit(self.prompt, ((self.WIDTH - self.prompt.get_width()) // 2, 125))
+        self.screen.blit(self.paragraph_l1, ((self.WIDTH - self.paragraph_l1.get_width()) // 2, 190))
+        self.screen.blit(self.paragraph_l2, ((self.WIDTH - self.paragraph_l2.get_width()) // 2, 240))
+        self.screen.blit(self.paragraph_l3, ((self.WIDTH - self.paragraph_l3.get_width()) // 2, 290))
+        self.screen.blit(self.paragraph_l4, ((self.WIDTH - self.paragraph_l4.get_width()) // 2, 340))
+
         self.clock.tick(60)
         pygame.display.update()
 
@@ -111,12 +135,12 @@ class Event():
                 game_active = False
 
     def random_event(self):
-        self.event_choice = random.randint(0, 1)
-        if self.event_choice == 0:
+        self.event_choice = random.randint(0, 1, 2, 3)
+        if self.event_choice == 0 or 1:
             self.A = True
             self.image = self.image_A
 
-        elif self.event_choice == 1:
+        elif self.event_choice == 2 or 3:
             self.B = True
             self.image = self.image_B
 
@@ -166,6 +190,19 @@ while running:
                 event_class.y = 0
                 event_class.last_spawn_time = pygame.time.get_ticks()
                 pygame.time.get_ticks()
+
+            if event.key == pygame.K_h and menu_active:
+                game_active = False
+                lost_active = False
+                menu_active = False
+                help_active = True
+
+            if event.key == pygame.K_RETURN and help_active:
+                game_active = False
+                lost_active = False
+                help_active = False
+                menu_active = True
+
             if event.key == pygame.K_e and game_active:
                 event_class.image = None
                 user_class.shoot = False
@@ -198,5 +235,8 @@ while running:
 
     elif lost_active:
         game_class.game_over()
+
+    elif help_active:
+        game_class.help()
 
 pygame.quit()
